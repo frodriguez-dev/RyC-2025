@@ -314,15 +314,29 @@ Respondida arriba
 Utilizaria los protocolos IMAP o POP3 para recibir los correos y SMTP para enviar los correos. El webmail se conectaria al servidor de correo utilizando el protocolo IMAP o POP3 para acceder a los correos almacenados en el servidor de correo y el protocolo SMTP para enviar los correos desde el webmail a otros destinatarios.
 
 ### g.¿Cómo se podría hacer para que cualquier MTA reconozca como válidos los mails provenientes del dominio redes2024.com.ar solamente a los que llegan de la dirección 203.0.113.111? ¿Afectaría esto a los mails enviados desde el Webmail? Justifique.
-
+Se deberia agregar un registro TXT con la clave publica para que al momento de recibir un correo, el MTA receptor pueda verificar que el correo proviene de un servidor autorizado para enviar correos en nombre del dominio redes2024.com.ar. Esto se hace mediante la implementación de SPF (Sender Policy Framework).
+Afectaria a los mails enviados desde el Webmail si este no está configurado para enviar correos a través del servidor de correo autorizado.
 
 ### h. ¿Qué característica propia de SMTP, IMAP y POP hace que al adjuntar una imagen o un ejecutable sea necesario aplicar un encoding (ej. base64)?
+Es debido a que estos protocolos envian texto plano y no pueden manejar datos binarios directamente. Por lo tanto, es necesario codificar los archivos adjuntos en un formato que pueda ser transmitido como texto, como base64, para asegurar que los datos se mantengan intactos durante la transmisión.
+
 ### i.¿Se podría enviar un mail a un usuario de modo que el receptor vea que el remitente es un usuario distinto? En caso afirmativo, ¿Cómo? ¿Es una indicación de una estafa? Justifique
+Se podria siempre y cuando el servidor de correo permita enviar correos con remitentes falsificados. Esto se puede hacer configurando el campo "From" del correo electrónico con una dirección de correo diferente a la del remitente real. Sin embargo, esto es una práctica deshonesta y puede ser una indicación de una estafa, ya que se está intentando engañar al receptor haciéndole creer que el correo proviene de una fuente confiable cuando en realidad no es así. Además, muchos servidores de correo implementan medidas de seguridad como SPF, DKIM y DMARC para detectar y bloquear correos con remitentes falsificados.
+
 ### j.¿Se podría enviar un mail a un usuario de modo que el receptor vea que el destinatario es un usuario distinto? En caso afirmativo, ¿Cómo? ¿Por qué no le llegaría al destinatario que el receptor ve? ¿Es esto una indicación de una estafa? Justifique
+Si se puede haciendo mail spoofing, donde se falsifica la dirección del destinatario en el encabezado del correo electrónico. Esto se puede hacer configurando el campo "To" del correo electrónico con una dirección de correo diferente a la del destinatario real. Sin embargo, esto no garantiza que el correo llegue al destinatario que el receptor ve, ya que los servidores de correo pueden verificar la autenticidad del destinatario y rechazar correos con direcciones falsificadas. Además, esto es una práctica deshonesta y puede ser una indicación de una estafa, ya que se está intentando engañar al receptor haciéndole creer que el correo está destinado a otra persona cuando en realidad no es así.
+
 ### k.¿Qué protocolo usará nuestro MUA para enviar un correo con remitente redes@info.unlp.edu.ar? ¿Con quién se conectará? ¿Qué información será necesaria y cómo la obtendría?
+Utiliza SMTP para enviar el correo y se conectara con agente MSA del servidor de correo de info.unlp.edu.ar, sera necesaria la ip del servidor de correo y el puerto 25, esta informacion se obtiene a traves de una consulta DNS por registros MX al dominio info.unlp.edu.ar.
+
 ### l.Dado que solo disponemos de un servidor de correo, ¿qué sucederá con los mails que intenten ingresar durante un reinicio del servidor?
+Se quedan en una cola de espera en el servidor de correo del remitente y se reintentará la entrega una vez que el
+servidor de correo de info.unlp.edu.ar vuelva a estar disponible.
+
 ### m.Suponga que contratamos un servidor de correo electrónico en la nube para integrarlo con nuestra arquitectura de servicios.
 #### i. ¿Cómo configuraría el DNS para que ambos servidores de correo se comporten de manera de dar un servicio de correo tolerante a fallos?
+Se configuraria un registro MX adicional en el DNS con una prioridad más alta para el servidor de correo en la nube, de manera que si el servidor de correo local no está disponible, los correos se envíen al servidor de correo en la nube. Esto permite que ambos servidores de correo trabajen juntos para proporcionar un servicio de correo tolerante a fallos.
+
 ## 11. Utilizando la herramienta Swaks envíe un correo electrónico con las siguientes características:
 - Dirección destino: Dirección de correo de alumnoimap@redes.unlp.edu.ar
 - Dirección origen: redesycomunicaciones@redes.unlp.edu.ar
@@ -347,17 +361,51 @@ Utilizaria los protocolos IMAP o POP3 para recibir los correos y SMTP para envia
 - El servidor ns1 de misitio.com.ar no tiene la recursión habilitadoa
 - Los hosts del dominio misitio.com.ar utilizan como servidor recursivo el 8.8.8.8 (DNS de Google)
 ### a.El servidor de mail, mail1, y de HTTP, www, de example.com tienen la misma IP, ¿es posible esto? Si lo es, ¿cómo lo resolvería?
+Si, es posible ya que corren en diferentes puertos, el servidor de mail utiliza el puerto 25 para SMTP y el servidor web utiliza el puerto 80 para HTTP. 
+Esto se resuelve mediante la configuración de los registros DNS correspondientes en el servidor dns2, donde se puede tener un registro A apuntando a la misma IP para ambos servicios y luego utilizar registros MX para el correo y registros A o CNAME para el web.
+
 ### b.Al enviar el mail, ¿por cuál registro de DNS consultará el MUA?
+Consulta por el registro A ya que el MUA ya tiene preconfigurado el dominio de su MSA, entonces soolamente le falta
+conocer la ip de ese dominio.
+
 ### c.Una vez que el mail fue recibido por el servidor smtp-5, ¿por qué registro de DNS consultará?
+Por el o los registros MX de example.com
+
 ### d. Si en el punto anterior smtp-5 recibiese un listado de nombres de servidores de correo, ¿será necesario realizar una consulta de DNS adicional? Si es afirmativo, ¿por qué tipo de registro y de cuál servidor preguntaría?
+Tiene que realizar una consulta adicional por el registro A del serividor MX con menor prioridad, ya que el registro MX
+solo devuelve el nombre del servidor de correo y no su dirección IP. Por lo tanto, es necesario realizar una consulta
+adicional para obtener la dirección IP del servidor de correo al que se debe enviar el correo.
+
 ### e. Indicar todo el proceso que deberá realizar el servidor ns1 de misitio.com.ar para obtener los servidores de mail de example.com.
-### f. Teniendo en cuenta el proceso de encapsulación/desencapsulación ​ y definición de protocolos, responder V o F y justificar:
-- Los datos de la cabecera de SMTP deben ser analizados por el servidor DNS para responder a la consulta de los registros MX
-- Al ser recibidos por el servidor smtp-5 los datos agregados por el protocolo SMTP serán analizados por cada una de las capas inferiores
-- Cada protocolo de la capa de aplicación agrega una cabecera con información propia de ese protocolo
-- Como son todos protocolos de la capa de aplicación, las cabeceras agregadas por el protocolo de DNS puede ser analizadas y comprendidas por el protocolo SMTP o HTTP
+- El servidor ns1 de misitio.com.ar le consulta al serivodor DNS 8.8.8.8 por el registro MX de example.com
+- El servidor DNS de google le responde
+
+### f. Teniendo en cuenta el proceso de encapsulación/desencapsulación y definición de protocolos, responder V o F y justificar:
+- Los datos de la cabecera de SMTP deben ser analizados por el servidor DNS para responder a la consulta de los registros MX. 
+Falso -> El servidor DNS no analiza las cabeceras de SMTP, el servidor origen  (MTA) de correo es quien realiza la consulta por los registros MX del dominio destino. 
+
+- Al ser recibidos por el servidor smtp-5 los datos agregados por el protocolo SMTP serán analizados por cada una de las capas inferiores. 
+FALSO -> Los datos son analizados por la capa de aplicacion.
+
+- Cada protocolo de la capa de aplicación agrega una cabecera con información propia de ese protocolo. 
+Verdadero -> Cada protocolo de la capa de aplicación agrega una cabecera con información propia de ese protocolo.
+
+- Como son todos protocolos de la capa de aplicación, las cabeceras agregadas por el protocolo de DNS puede ser analizadas y comprendidas por el protocolo SMTP o HTTP.
+FALSO -> los diferentes protocolos de la capa de aplicación no pueden analizarse entre sí, ya que cada uno tiene su propio formato y estructura de cabecera.
+
 - Para que los cliente en misitio.com.ar puedan acceder el servidor HTTP www.example.com y mostrar correctamente su contenido deben tener el mismo sistema operativo.
+FALSO -> El sistema operativo es irrelevante para la comunicacion entre clientes y servidores.
 
 ### g. Un cliente web que desea acceder al servidor www.example.com y que no pertenece a ninguno de estos dos dominios puede usar a ns1 de misitio.com.ar como servidor de DNS para resolver la consulta?
+No puede ya que ns1 no es autorizativo de www.ecample.com y no tiene recursión habilitada, por lo que no puede resolver la consulta para un dominio que no es de su propiedad.
+
 ### h. Cuando Alicia quiera ver sus mails desde PC-D, ¿qué registro de DNS deberá consultarse?
+Debe consultar por el registro A ya que el MUA ya tiene preconfigurado el dominio de su MAA, entonces solamente le falta la IP de ese dominio.
+
 ### i.Indicar todos los protocolos de mail involucrados, puerto y si usan TCP o UDP, en el envío y recepción de dicho mail
+
+SMPT -> Puerto 25 TCP -> Envio
+POP3 -> Puerto 110 TCP -> Recepcion
+IMAP -> Puerto 143 TCP -> Recepcion
+
+HTTP -> Puerto 80 TCP -> Acceso a webmail
